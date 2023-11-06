@@ -49,6 +49,8 @@ please see the document [How to Contribute](https://github.com/microsoft/vscode/
 See our [wiki](https://github.com/microsoft/vscode/wiki/Feedback-Channels) for a description of each of these channels and information on some other available community-driven channels.
 
 ## Related Projects
+src/vs/workbench/contrib/interactiveEditor/browser/interactiveEditorWidget.ts
+ms-toolsai.vscode-jupyter-cell-tag
 
 Many of the core components and extensions to VS Code live in their own repositories on GitHub. For example, the [node debug adapter](https://github.com/microsoft/vscode-node-debug) and the [mono debug adapter](https://github.com/microsoft/vscode-mono-debug) repositories are separate from each other. For a complete list, please visit the [Related Projects](https://github.com/microsoft/vscode/wiki/Related-Projects) page on our [wiki](https://github.com/microsoft/vscode/wiki).
 

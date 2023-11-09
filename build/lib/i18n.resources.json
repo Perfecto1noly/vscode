@@ -59,6 +59,10 @@
 			"project": "vscode-workbench"
 		},
 		{
+			"name": "vs/workbench/contrib/mappedEdits",
+			"project": "vscode-workbench"
+		},
+		{
 			"name": "vs/workbench/contrib/comments",
 			"project": "vscode-workbench"
 		},
@@ -76,6 +80,10 @@
 		},
 		{
 			"name": "vs/workbench/services/assignment",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "vs/workbench/services/auxiliaryWindow",
 			"project": "vscode-workbench"
 		},
 		{
@@ -204,6 +212,10 @@
 		},
 		{
 			"name": "vs/workbench/contrib/tags",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "vs/workbench/contrib/speech",
 			"project": "vscode-workbench"
 		},
 		{
@@ -528,6 +540,10 @@
 		},
 		{
 			"name": "vs/workbench/services/secrets",
+			"project": "vscode-workbench"
+		},
+		{
+			"name": "vs/workbench/contrib/accountEntitlements",
 			"project": "vscode-workbench"
 		}
 	]

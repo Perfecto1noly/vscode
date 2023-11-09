@@ -24,10 +24,13 @@ import { canceled, onUnexpectedError } from 'vs/base/common/errors';
 import { UnicodeHighlighterOptions } from 'vs/editor/common/services/unicodeTextModelHighlighter';
 import { IEditorWorkerHost } from 'vs/editor/common/services/editorWorkerHost';
 import { ILanguageFeaturesService } from 'vs/editor/common/services/languageFeatures';
-import { IChange } from 'vs/editor/common/diff/smartLinesDiffComputer';
+import { IChange } from 'vs/editor/common/diff/legacyLinesDiffComputer';
 import { IDocumentDiff, IDocumentDiffProviderOptions } from 'vs/editor/common/diff/documentDiffProvider';
-import { ILinesDiffComputerOptions, LineRangeMapping, MovedText, RangeMapping, SimpleLineRangeMapping } from 'vs/editor/common/diff/linesDiffComputer';
+import { ILinesDiffComputerOptions, MovedText } from 'vs/editor/common/diff/linesDiffComputer';
+import { DetailedLineRangeMapping, RangeMapping, LineRangeMapping } from 'vs/editor/common/diff/rangeMapping';
 import { LineRange } from 'vs/editor/common/core/lineRange';
+import { $window } from 'vs/base/browser/window';
+import { WindowIntervalTimer } from 'vs/base/browser/dom';
 
 /**
  * Stop syncing a model to the worker if it was not needed for 1 min.
@@ -107,15 +110,15 @@ export class EditorWorkerService extends Disposable implements IEditorWorkerServ
 			quitEarly: result.quitEarly,
 			changes: toLineRangeMappings(result.changes),
 			moves: result.moves.map(m => new MovedText(
-				new SimpleLineRangeMapping(new LineRange(m[0], m[1]), new LineRange(m[2], m[3])),
+				new LineRangeMapping(new LineRange(m[0], m[1]), new LineRange(m[2], m[3])),
 				toLineRangeMappings(m[4])
 			))
 		};
 		return diff;
 
-		function toLineRangeMappings(changes: readonly ILineChange[]): readonly LineRangeMapping[] {
+		function toLineRangeMappings(changes: readonly ILineChange[]): readonly DetailedLineRangeMapping[] {
 			return changes.map(
-				(c) => new LineRangeMapping(
+				(c) => new DetailedLineRangeMapping(
 					new LineRange(c[0], c[1]),
 					new LineRange(c[2], c[3]),
 					c[4]?.map(
@@ -280,8 +283,8 @@ class WorkerManager extends Disposable {
 		this._editorWorkerClient = null;
 		this._lastWorkerUsedTime = (new Date()).getTime();
 
-		const stopWorkerInterval = this._register(new IntervalTimer());
-		stopWorkerInterval.cancelAndSet(() => this._checkStopIdleWorker(), Math.round(STOP_WORKER_DELTA_TIME_MS / 2));
+		const stopWorkerInterval = this._register(new WindowIntervalTimer());
+		stopWorkerInterval.cancelAndSet(() => this._checkStopIdleWorker(), Math.round(STOP_WORKER_DELTA_TIME_MS / 2), $window);
 
 		this._register(this._modelService.onModelRemoved(_ => this._checkStopEmptyWorker()));
 	}

@@ -277,6 +277,10 @@ async function createCheckoutItems(repository: Repository, detached = false): Pr
 		.filter(p => !!p) as CheckoutProcessor[];
 
 	for (const ref of refs) {
+		if (!detached && ref.name === 'origin/HEAD') {
+			continue;
+		}
+
 		for (const processor of processors) {
 			processor.onRef(ref);
 		}
@@ -1783,12 +1787,17 @@ export class CommandCenter {
 				const message = documents.length === 1
 					? l10n.t('The following file has unsaved changes which won\'t be included in the commit if you proceed: {0}.\n\nWould you like to save it before committing?', path.basename(documents[0].uri.fsPath))
 					: l10n.t('There are {0} unsaved files.\n\nWould you like to save them before committing?', documents.length);
-				const saveAndCommit = l10n.t('Save All & Commit');
-				const commit = l10n.t('Commit Staged Changes');
+				const saveAndCommit = l10n.t('Save All & Commit Changes');
+				const commit = l10n.t('Commit Changes');
 				const pick = await window.showWarningMessage(message, { modal: true }, saveAndCommit, commit);
 
 				if (pick === saveAndCommit) {
 					await Promise.all(documents.map(d => d.save()));
+
+					// After saving the dirty documents, if there are any documents that are part of the
+					// index group we have to add them back in order for the saved changes to be committed
+					documents = documents
+						.filter(d => repository.indexGroup.resourceStates.some(s => pathEquals(s.resourceUri.fsPath, d.uri.fsPath)));
 					await repository.add(documents.map(d => d.uri));
 
 					noStagedChanges = repository.indexGroup.resourceStates.length === 0;
@@ -2784,7 +2793,9 @@ export class CommandCenter {
 				return;
 			}
 
-			forcePushMode = config.get<boolean>('useForcePushWithLease') === true ? ForcePushMode.ForceWithLease : ForcePushMode.Force;
+			const useForcePushWithLease = config.get<boolean>('useForcePushWithLease') === true;
+			const useForcePushIfIncludes = config.get<boolean>('useForcePushIfIncludes') === true;
+			forcePushMode = useForcePushWithLease ? useForcePushIfIncludes ? ForcePushMode.ForceWithLeaseIfIncludes : ForcePushMode.ForceWithLease : ForcePushMode.Force;
 
 			if (config.get<boolean>('confirmForcePush')) {
 				const message = l10n.t('You are about to force push your changes, this can be destructive and could inadvertently overwrite changes made by others.\n\nAre you sure to continue?');
@@ -3572,6 +3583,26 @@ export class CommandCenter {
 		}
 	}
 
+	@command('git.generateCommitMessage', { repository: true })
+	async generateCommitMessage(repository: Repository): Promise<void> {
+		if (!repository || !this.model.commitMessageProvider) {
+			return;
+		}
+
+		await window.withProgress({ location: ProgressLocation.SourceControl }, async () => {
+			await repository.generateCommitMessage();
+		});
+	}
+
+	@command('git.generateCommitMessageCancel', { repository: true })
+	generateCommitMessageCancel(repository: Repository): void {
+		if (!repository || !this.model.commitMessageProvider) {
+			return;
+		}
+
+		repository.generateCommitMessageCancel();
+	}
+
 	private createCommand(id: string, key: string, method: Function, options: ScmCommandOptions): (...args: any[]) => any {
 		const result = (...args: any[]) => {
 			let result: Promise<any>;
@@ -3652,6 +3683,10 @@ export class CommandCenter {
 						break;
 					case GitErrorCodes.PushRejected:
 						message = l10n.t('Can\'t push refs to remote. Try running "Pull" first to integrate your changes.');
+						break;
+					case GitErrorCodes.ForcePushWithLeaseRejected:
+					case GitErrorCodes.ForcePushWithLeaseIfIncludesRejected:
+						message = l10n.t('Can\'t force push refs to remote. The tip of the remote-tracking branch has been updated since the last checkout. Try running "Pull" first to pull the latest changes from the remote branch first.');
 						break;
 					case GitErrorCodes.Conflict:
 						message = l10n.t('There are merge conflicts. Resolve them before committing.');
